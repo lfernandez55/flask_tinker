@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Flask Template</title>
+</head>
+<style>
+h1{text-align: center}
+    h4{padding: 20px}
+li{
+margin-bottom: 15px
+}
+ul{
+margin-bottom: 15px; border: 1px solid black;
+}
+</style>
+<body>
+<h1>SQLAlchemy Practice</h1>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<div>
+       <ul>
+        <li><a href="{{ url_for('drop_all') }}" >drop_all</a>
+            <br>(the db.drop_all method)
+        </li>
+        <li><a href="{{ url_for('create_all') }}" >create_all </a>
+            <br>(the db.create_all method)
+        </li>
+    </ul>
+
+</div>
+
+
+
+
+</body>
+</html>

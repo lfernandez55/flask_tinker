@@ -1,0 +1,98 @@
+
+# Define the Role data-model
+class Child(db.Model):
+    __tablename__ = 'child'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50) )
+    age = db.Column(db.Integer())
+    parent_id = db.Column(db.Integer, db.ForeignKey('parent.id', ondelete='CASCADE'))
+
+class Parent(db.Model):
+    __tablename__ = 'parent'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50) )
+    children = db.relationship("Child", backref='parent', cascade='all')
+
+# Define the Flask forms
+# https://stackoverflow.com/questions/49066046/append-entry-to-fieldlist-with-flask-wtforms-using-ajax
+class ChildForm(FlaskForm):
+
+    id = StringField(label='id')
+    name = StringField(label='Name child')
+    age = IntegerField(label='Age child')
+
+    class Meta:
+        # No need for csrf token in this child form
+        csrf = False
+
+class ParentForm(FlaskForm):
+
+    name = StringField(label='Name parent')
+    children = FieldList(FormField(ChildForm), label='Children')
+    add_child = SubmitField(label='Add child')
+
+    submit = SubmitField()
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=4000, debug=True)
+
+@app.route('/')
+def home_page():
+    return render_template('index.html')
+
+@app.route('/create_all')
+def create_all():
+    db.create_all()
+    flash('DB Added!!')
+    return redirect(url_for('home_page'))
+
+@app.route('/drop_all')
+def drop_all():
+    db.drop_all()
+    flash('DB Dropped!!')
+    return redirect(url_for('home_page'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = ParentForm()
+
+    if form.add_child.data:
+        form.children.append_entry()
+        return render_template('register.html', form=form)
+
+    if form.validate_on_submit():
+        parentObj = Parent(name=form.name.data)
+        for child in form.children.data:
+            childObj = Child(name=child['name'],age=child['age'])
+            parentObj.children.append(childObj)
+        db.session.add(parentObj)
+        db.session.commit()
+        flash('Parent Added!!')
+        return redirect(url_for('home_page'))
+
+    return render_template('register.html', form=form)
+
+@app.route('/update_registration', methods=['GET', 'POST'])
+def update_registration():
+    parentObj = Parent.query.filter(Parent.id == 1).first()
+    print("ddddd:", parentObj.children[0].id)
+    form = ParentForm(id=parentObj.id, name=parentObj.name, children=parentObj.children)
+    print("eeeee:", form.children, form.children[0].id)
+    if form.add_child.data:
+        form.children.append_entry()
+        return render_template('update_registration.html', form=form)
+    if form.validate_on_submit():
+        parentObj.name=form.name.data
+        # There should be a way to update the existing children objects rather than deleting and readding them
+        # But in the below we delete and re-add.  Otherwise updated children simply append to existing children list
+        for i in range(len(parentObj.children)):
+            db.session.delete(parentObj.children[i])
+        for child in form.children.data:
+            childObj = Child(name=child['name'],age=child['age'])
+            parentObj.children.append(childObj)
+        db.session.add(parentObj)
+        db.session.commit()
+        flash('Parent [and children] Updated!!')
+        return redirect(url_for('home_page'))
+    return render_template('update_registration.html', form=form)
